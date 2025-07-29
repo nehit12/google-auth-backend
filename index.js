@@ -1,16 +1,28 @@
 const express = require('express');
-const cors = require('cors');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: 'https://your-backend.onrender.com/auth/google/callback'
+}, (accessToken, refreshToken, profile, done) => {
+  done(null, profile);
+}));
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(passport.initialize());
+app.use(passport.session());
 
-// Test route
-app.get('/', (req, res) => {
-  res.send('✅ Google Auth Backend Running');
-});
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile','email'] })
+);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server started on port ${PORT}`);
-});
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/' }),
+  (req, res) => {
+    res.redirect('/');
+  }
+);
+
+app.listen(process.env.PORT || 3000);
